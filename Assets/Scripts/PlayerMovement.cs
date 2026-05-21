@@ -1,7 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using Unity.Mathematics;
-using Unity.VisualScripting.Antlr3.Runtime.Misc;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -14,6 +10,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] [Range(0, 1)] float lerpConstant = 0.1f;
 
     [SerializeField] public float jumpForce = 5f;
+
+    [SerializeField] private LayerMask groundLayer;
 
     [SerializeField] private float groundCheckDistance = 0.1f;
 
@@ -54,8 +52,8 @@ public class PlayerMovement : MonoBehaviour
         frameInput = new FrameInput
         {
             JumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.C),
-            JumpHeld = Input.GetButtonDown("Jump") || Input.GetKey(KeyCode.C),
-            Move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"))
+            JumpHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.C),
+            Move = new Vector2(Input.GetAxisRaw("Horizontal"),0)
         };
     }
 
@@ -78,7 +76,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (playerCollider == null) return;
 
-        RaycastHit2D  hit = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, groundCheckDistance);
+        RaycastHit2D  hit = Physics2D.BoxCast(playerCollider.bounds.center, 
+                                              playerCollider.bounds.size, 
+                                              0, 
+                                              Vector2.down, 
+                                              groundCheckDistance,
+                                              groundLayer);
         isGrounded = hit.collider != null;
 
         Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
