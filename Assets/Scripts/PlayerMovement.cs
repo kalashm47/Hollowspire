@@ -15,9 +15,10 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] public float jumpForce = 5f;
 
+    [SerializeField] private float groundCheckDistance = 0.1f;
+
     private Collider2D playerCollider;
 
-    private RaycastHit2D groundCast;
 
     private bool isGrounded;    
 
@@ -38,12 +39,12 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         GatherInput();
+        collisionBehaviour();
     }
 
     private void FixedUpdate()
     {
         playerBehaviour();
-        collisionBehaviour();
         HandleJump();
 
     }
@@ -53,7 +54,7 @@ public class PlayerMovement : MonoBehaviour
         frameInput = new FrameInput
         {
             JumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.C),
-            JumpHeld = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.C),
+            JumpHeld = Input.GetButtonDown("Jump") || Input.GetKey(KeyCode.C),
             Move = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"))
         };
     }
@@ -63,12 +64,11 @@ public class PlayerMovement : MonoBehaviour
         if (frameInput.JumpDown && isGrounded)
         {
             ExecuteJump();
+
         }
     }
     private void ExecuteJump()
     {
-        PlayerRb.velocity = new Vector2(PlayerRb.velocity.x, jumpForce);
-
         float jumpVelocity = Mathf.Sqrt(2f * stats.jumpHeight * Mathf.Abs(Physics2D.gravity.y * stats.baseGravity));
 
         PlayerRb.velocity = new Vector2(PlayerRb.velocity.x, jumpVelocity);
@@ -76,12 +76,12 @@ public class PlayerMovement : MonoBehaviour
     }
     void collisionBehaviour()
     {
-        float groundDistance = 0.5f;
         if (playerCollider == null) return;
 
-        groundCast = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, groundDistance);
+        RaycastHit2D  hit = Physics2D.BoxCast(playerCollider.bounds.center, playerCollider.bounds.size, 0, Vector2.down, groundCheckDistance);
+        isGrounded = hit.collider != null;
 
-        isGrounded = groundCast.collider != null;
+        Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
     }
     void playerBehaviour()
     {
