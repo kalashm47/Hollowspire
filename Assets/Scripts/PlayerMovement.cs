@@ -1,3 +1,4 @@
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -6,10 +7,19 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Vector2 moveInput;
 
     [SerializeField] public float speed = 5f;
+    [SerializeField] public float walkSpeed = 3f;      // ADDED: Separate walk speed
+    [SerializeField] public float runSpeed = 7f;       // ADDED: Separate run speed
 
-    [SerializeField] [Range(0, 1)] float lerpConstant = 0.1f;
+    [SerializeField] private bool canRun = true;        // ADDED: Toggle for running
+    [SerializeField] private KeyCode runKey = KeyCode.LeftShift; // ADDED: Run key
+
+    [SerializeField][Range(0, 1)] float lerpConstant = 0.1f;
 
     [SerializeField] public float jumpForce = 5f;
+
+    [SerializeField] private float jumpBufferTime = 0.2f;
+
+    [SerializeField] private float coyoteTime = 0.1f;
 
     [SerializeField] private LayerMask groundLayer;
 
@@ -17,81 +27,269 @@ public class PlayerMovement : MonoBehaviour
 
     private Collider2D playerCollider;
 
+    private float jumpBufferCounter;
+    private float coyoteCounter;
 
-    private bool isGrounded;    
+    private bool isGrounded;
+    private bool wasGroundedLastFrame;
+    private bool isJumping;
+    private bool isRunning;      // ADDED: Track running state
+    private float currentSpeed;   // ADDED: Current movement speed
+
+    private Animator anim;
 
     private FrameInput frameInput;
-    public Rigidbody2D PlayerRb { get; private set; } 
+    public Rigidbody2D PlayerRb { get; private set; }
 
     public struct FrameInput
     {
         public bool JumpDown;
         public bool JumpHeld;
+        public bool RunHeld;      // ADDED: Run input
         public Vector2 Move;
     }
+
     void Start()
     {
+        anim = GetComponentInChildren<Animator>();
         PlayerRb = GetComponent<Rigidbody2D>();
         playerCollider = GetComponent<Collider2D>();
+
+        if (stats == null)
+        {
+            Debug.LogError("[PlayerMovement] PlayerStats not assigned!");
+        }
+
+        currentSpeed = walkSpeed; // Initialize with walk speed
     }
+
     void Update()
     {
         GatherInput();
         collisionBehaviour();
+        UpdateBuffers();
+        UpdateAnimations();
+        UpdateMovementState(); // ADDED: Update walk/run state
+
+        // Debug for space button
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Debug.Log($"[Space] Button PRESSED - Time: {Time.time}");
+        }
+
+        if (Input.GetKey(KeyCode.Space))
+        {
+            Debug.Log($"[Space] Button HELD - Frame: {Time.frameCount}");
+        }
+
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            Debug.Log($"[Space] Button RELEASED - Time: {Time.time}");
+        }
+    }
+
+    private void UpdateMovementState()
+    {
+        // ADDED: Determine if player is running
+        if (canRun && frameInput.RunHeld && Mathf.Abs(frameInput.Move.x) > 0.1f && isGrounded)
+        {
+            isRunning = true;
+            currentSpeed = runSpeed;
+        }
+        else
+        {
+            isRunning = false;
+            currentSpeed = walkSpeed;
+        }
+    }
+
+    private void UpdateAnimations()
+    {
+        if (anim != null)
+        {
+            float horizontalSpeed = Mathf.Abs(frameInput.Move.x);
+            float currentMovementSpeed = horizontalSpeed * (isRunning ? 2f : 1f);
+
+            // EXISTE no Animator
+            anim.SetFloat("Speed", currentMovementSpeed);
+
+            // EXISTE no Animator
+            anim.SetBool("isGrounded", isGrounded);
+
+            // EXISTE no Animator
+            anim.SetFloat("VerticalVelocity", PlayerRb.velocity.y);
+
+            // EXISTE no Animator
+            anim.SetBool("isFalling", !isGrounded && PlayerRb.velocity.y < 0);
+
+            // JUMP
+            if (isJumping)
+            {
+                anim.SetTrigger("Jump");
+                isJumping = false;
+            }
+        }
+    }
+
+    private void UpdateBuffers()
+    {
+        if (frameInput.JumpDown)
+        {
+            jumpBufferCounter = jumpBufferTime;
+            Debug.Log($"[Buffer] Jump buffer set to {jumpBufferTime} - Counter: {jumpBufferCounter}");
+        }
+        else
+        {
+            jumpBufferCounter -= Time.deltaTime;
+        }
+
+        if (isGrounded)
+        {
+            coyoteCounter = coyoteTime;
+        }
+        else
+        {
+            coyoteCounter -= Time.deltaTime;
+        }
     }
 
     private void FixedUpdate()
     {
+        RefreshGroundState();
         playerBehaviour();
         HandleJump();
-
     }
 
     private void GatherInput()
-    { 
+    {
         frameInput = new FrameInput
         {
             JumpDown = Input.GetButtonDown("Jump") || Input.GetKeyDown(KeyCode.C),
             JumpHeld = Input.GetButton("Jump") || Input.GetKey(KeyCode.C),
-            Move = new Vector2(Input.GetAxisRaw("Horizontal"),0)
+            RunHeld = Input.GetKey(runKey), // ADDED: Capture run input
+            Move = new Vector2(Input.GetAxisRaw("Horizontal"), 0)
         };
+
+        if (frameInput.JumpDown)
+        {
+            Debug.Log($"[FrameInput] JumpDown detected - isGrounded: {isGrounded} - Time: {Time.time}");
+        }
+    }
+
+    private void RefreshGroundState()
+    {
+        if (playerCollider == null) return;
+
+        RaycastHit2D hit = Physics2D.BoxCast(
+            playerCollider.bounds.center,
+            playerCollider.bounds.size,
+            0,
+            Vector2.down,
+            groundCheckDistance,
+            groundLayer
+        );
+
+        wasGroundedLastFrame = isGrounded;
+        isGrounded = hit.collider != null;
+
+        if (isGrounded && !wasGroundedLastFrame)
+        {
+            isJumping = false;
+            // ADDED: Trigger landing animation
+            if (anim != null)
+            {
+                anim.SetTrigger("Land");
+            }
+            Debug.Log("[Animation] Landed on ground - Reset jump state");
+        }
+
+        if (isGrounded != wasGroundedLastFrame)
+        {
+            Debug.Log($"[GroundState] Changed from {wasGroundedLastFrame} to {isGrounded} - Hit: {(hit.collider != null ? hit.collider.name : "None")}");
+        }
     }
 
     private void HandleJump()
     {
-        if (frameInput.JumpDown && isGrounded)
+        bool canJump = (jumpBufferCounter > 0) && (isGrounded || coyoteCounter > 0);
+
+        if (canJump)
         {
+            Debug.Log($"[HandleJump] JUMP AUTHORIZED! JumpBuffer: {jumpBufferCounter:F3}s | isGrounded: {isGrounded} | CoyoteTime: {coyoteCounter:F3}s");
             ExecuteJump();
 
+            jumpBufferCounter = 0;
+            coyoteCounter = 0;
+        }
+        else if (frameInput.JumpDown)
+        {
+            Debug.Log($"[HandleJump] Jump failed - JumpBuffer: {jumpBufferCounter:F3} | isGrounded: {isGrounded} | CoyoteTime: {coyoteCounter:F3}");
         }
     }
+
     private void ExecuteJump()
     {
+        isJumping = true;
+        isRunning = false; // Reset running state when jumping
+
+        if (stats == null)
+        {
+            PlayerRb.velocity = new Vector2(PlayerRb.velocity.x, jumpForce);
+            Debug.LogWarning($"[ExecuteJump] Using jumpForce fallback: {jumpForce}");
+            return;
+        }
+
         float jumpVelocity = Mathf.Sqrt(2f * stats.jumpHeight * Mathf.Abs(Physics2D.gravity.y * stats.baseGravity));
 
-        PlayerRb.velocity = new Vector2(PlayerRb.velocity.x, jumpVelocity);
+        Debug.Log($"[ExecuteJump] Jump executed! Velocity: {jumpVelocity} - Height: {stats.jumpHeight}");
 
+        PlayerRb.velocity = new Vector2(PlayerRb.velocity.x, jumpVelocity);
     }
+
     void collisionBehaviour()
     {
         if (playerCollider == null) return;
 
-        RaycastHit2D  hit = Physics2D.BoxCast(playerCollider.bounds.center, 
-                                              playerCollider.bounds.size, 
-                                              0, 
-                                              Vector2.down, 
+        RaycastHit2D hit = Physics2D.BoxCast(playerCollider.bounds.center,
+                                              playerCollider.bounds.size,
+                                              0,
+                                              Vector2.down,
                                               groundCheckDistance,
                                               groundLayer);
+
         isGrounded = hit.collider != null;
 
-        Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, isGrounded ? Color.green : Color.red);
+        if (hit.collider != null)
+        {
+            Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, Color.green);
+        }
+        else
+        {
+            Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, Color.red);
+        }
     }
+
     void playerBehaviour()
     {
         float horizontal = frameInput.Move.x;
-        
+
+        // FIXED: Flip sprite based on movement direction
+        if (horizontal != 0)
+        {
+            transform.localScale = new Vector3(Mathf.Sign(horizontal), transform.localScale.y, transform.localScale.z);
+        }
+
+        // ADDED: Use current speed (walk or run)
+        float movementSpeed = currentSpeed;
+
+        // ADDED: Slight speed reduction when changing direction quickly
+        if (Mathf.Abs(horizontal) > 0 && Mathf.Sign(horizontal) != Mathf.Sign(PlayerRb.velocity.x))
+        {
+            movementSpeed *= 0.8f; // Turn speed penalty for more realistic movement
+        }
+
         Vector2 targetVelocity = new Vector2(
-            horizontal * speed,
+            horizontal * movementSpeed,
             PlayerRb.velocity.y
         );
 
@@ -99,8 +297,23 @@ public class PlayerMovement : MonoBehaviour
             PlayerRb.velocity,
             targetVelocity,
             lerpConstant
-            );
-
+        );
     }
 
+    // ADDED: Animation Event methods
+    public void OnFootstep() // Call this from animation events
+    {
+        // Play footstep sound based on surface and running state
+        float volume = isRunning ? 0.8f : 0.4f;
+        float pitch = isRunning ? 1.2f : 1.0f;
+
+        // You can add audio playback here
+        Debug.Log($"[Footstep] Running: {isRunning}, Volume: {volume}, Pitch: {pitch}");
+    }
+
+    public void OnLand() // Call this from animation events
+    {
+        // Play landing sound/effect
+        Debug.Log("[Landing] Player landed on ground");
+    }
 }
