@@ -4,15 +4,28 @@ using UnityEngine;
 
 public class Attack : MonoBehaviour
 {
+
+    [Header("Combat")]
+    public Transform attackPoint;
+
+    public float attackRadius = 0.5f;
+
+    public LayerMask enemyLayer;
+
+    public int damage = 1;
+
     [Header("Attack Settings")]
     public float attackInterval = 0.1f;
 
     [Header("References")]
     public GameObject hitbox;
     public Animator animator;
+    public SpriteRenderer spriteRenderer;
 
     [Header("Debug")]
     public bool isAttacking;
+    public Direction currentDirection;
+
 
     // Dictionary containing all attack data
     public Dictionary<Direction, AttackData> attacks =
@@ -21,9 +34,41 @@ public class Attack : MonoBehaviour
     // Attack directions
     private void Update()
     {
+        UpdateCurrentDirection();
+
         if (Input.GetKeyDown(KeyCode.J))
         {
             StartCoroutine(AttackRoutine(Direction.Right));
+        }
+    }
+
+    private void UpdateCurrentDirection()
+    {
+        if (spriteRenderer != null)
+        {
+            // Hollow Knight style: ataca para esquerda/direita baseado no flip
+            if (spriteRenderer.flipX)
+                currentDirection = Direction.Left;
+            else
+                currentDirection = Direction.Right;
+        }
+        else
+        {
+            // Fallback: usa a escala local
+            if (transform.localScale.x < 0)
+                currentDirection = Direction.Left;
+            else
+                currentDirection = Direction.Right;
+        }
+    }
+    public void SetDirection(Direction newDirection)
+    {
+        currentDirection = newDirection;
+
+        // Opcional: atualizar flip do sprite
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.flipX = (newDirection == currentDirection);
         }
     }
     public enum Direction
@@ -90,7 +135,7 @@ public class Attack : MonoBehaviour
     // Public coroutine so other scripts can call it
     public IEnumerator AttackRoutine(Direction dir)
     {
-        // Prevent attack spam
+        // Prevent spam
         if (isAttacking)
             yield break;
 
@@ -102,25 +147,48 @@ public class Attack : MonoBehaviour
         // Play animation
         animator.Play(data.animation);
 
-        // Small startup delay
+        // Startup frames
         yield return new WaitForSeconds(0.1f);
 
-        // Move hitbox BEFORE enabling
+        // Move hitbox visual
         hitbox.transform.localPosition = data.hitboxOffset;
 
-        // Enable hitbox
+        attackPoint.transform.localPosition = data.hitboxOffset;
+
+        // Enable visual hitbox
         hitbox.SetActive(true);
+
+        // REAL DAMAGE HAPPENS HERE
+        Collider2D[] hits = Physics2D.OverlapCircleAll(
+            attackPoint.position,
+            attackRadius,
+            enemyLayer
+        );
+
+        foreach (Collider2D hit in hits)
+        {
+            Debug.Log("Something detected");
+
+            EnemyHealth enemyHealth =
+                hit.GetComponent<EnemyHealth>();
+
+            if (enemyHealth != null)
+            {
+                Debug.Log("Enemy Hit!");
+
+                enemyHealth.TakeDamage(damage);
+            }
+        }
 
         // Active frames
         yield return new WaitForSeconds(0.15f);
 
-        // Disable hitbox
+        // Disable visual hitbox
         hitbox.SetActive(false);
 
-        // Recovery frames
+        // Recovery
         yield return new WaitForSeconds(attackInterval);
 
-        // Return to idle
         animator.Play("idle");
 
         isAttacking = false;
