@@ -64,6 +64,33 @@ public class PatorlJump : MonoBehaviour
         }
     }
 
+    IEnumerator JumpToPatrolPoint()
+    {
+        hasExecuted = true;
+
+        yield return new WaitForSeconds(jumpInitializeTime);
+
+        Vector2 targetPos = patrolPoints[currentPatrolPointIndex].position;
+
+        float distanceX =
+            targetPos.x - transform.position.x;
+
+        if (distanceX > 0)
+            transform.localScale = Vector3.one;
+        else
+            transform.localScale = new Vector3(-1, 1, 1);
+
+        rb.velocity = Vector2.zero;
+
+        rb.AddForce(
+            new Vector2(distanceX * 1.5f, jumpForce),
+            ForceMode2D.Impulse
+        );
+
+        yield return new WaitForSeconds(jumpBackIniTime);
+
+        hasExecuted = false;
+    }
     IEnumerator JumpToTarget(Transform target)
     {
         yield return new WaitForSeconds(jumpInitializeTime);
@@ -104,26 +131,18 @@ public class PatorlJump : MonoBehaviour
         Vector2 targetPosition =
             patrolPoints[currentPatrolPointIndex].position;
 
-        targetPosition.y = transform.position.y;
+        float distance =
+            Vector2.Distance(transform.position, targetPosition);
+
+        if (distance < 1f)
+        {
+            StartCoroutine(WaitAtPoint());
+            return;
+        }
 
         if (isGrounded)
         {
-            transform.position = Vector2.MoveTowards(
-                transform.position,
-                targetPosition,
-                moveSpeed * Time.deltaTime
-            );
-
-            // Flip sprite
-            if (transform.position.x < targetPosition.x)
-                transform.localScale = new Vector3(1, 1, 1);
-            else
-                transform.localScale = new Vector3(-1, 1, 1);
-        }
-
-        if (Vector2.Distance(transform.position, targetPosition) < 0.1f)
-        {
-            StartCoroutine(WaitAtPoint());
+            StartCoroutine(JumpToPatrolPoint());
         }
     }
 
