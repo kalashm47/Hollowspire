@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 8b525001d5a347c49929752900f8efb6
+guid: be3af93cd57f7474c85ce5467f305137
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -97,13 +97,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: crow_damage_0
+      name: walk_0
       rect:
         serializedVersion: 2
         x: 0
-        y: 0
-        width: 64
-        height: 64
+        y: 10
+        width: 104
+        height: 146
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -111,20 +111,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c1a8387180ca015458cfec6bcecc3aac
-      internalID: 1052108849
+      spriteID: 2c413df186700714caa71815f32d77dd
+      internalID: -482496431
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: crow_damage_1
+      name: walk_1
       rect:
         serializedVersion: 2
-        x: 64
-        y: 0
-        width: 64
-        height: 64
+        x: 208
+        y: 10
+        width: 104
+        height: 146
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -132,20 +132,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8b262c00965c947409525cc0e60e624f
-      internalID: 28039527
+      spriteID: 34afd1b1e1ca9a34d9865d2b381d4bc7
+      internalID: -970330661
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: crow_damage_2
+      name: walk_2
       rect:
         serializedVersion: 2
-        x: 128
-        y: 0
-        width: 64
-        height: 64
+        x: 312
+        y: 10
+        width: 104
+        height: 146
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -153,8 +153,71 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 24b14061c5b7a8e4d90354fd02607a92
-      internalID: 1396268055
+      spriteID: 120f92ca291d063449ced80bbe4b1815
+      internalID: -1751778288
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: walk_3
+      rect:
+        serializedVersion: 2
+        x: 520
+        y: 10
+        width: 104
+        height: 146
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ad71d41621bd247458d7c9dcc9dc3140
+      internalID: 2139228381
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: walk_4
+      rect:
+        serializedVersion: 2
+        x: 624
+        y: 10
+        width: 104
+        height: 146
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 30a2f80e8ba09004d94f6823e949c4cf
+      internalID: -384368472
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: walk_5
+      rect:
+        serializedVersion: 2
+        x: 832
+        y: 10
+        width: 104
+        height: 146
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1953a5ebe40fc0542954c24d9a387af7
+      internalID: -1203098104
       vertices: []
       indices: 
       edges: []
@@ -170,9 +233,12 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      crow_damage_0: 1052108849
-      crow_damage_1: 28039527
-      crow_damage_2: 1396268055
+      walk_0: -482496431
+      walk_1: -970330661
+      walk_2: -1751778288
+      walk_3: 2139228381
+      walk_4: -384368472
+      walk_5: -1203098104
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

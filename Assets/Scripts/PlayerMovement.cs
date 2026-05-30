@@ -1,12 +1,24 @@
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
     public PlayerStats stats;
+
+    private RaycastHit2D landingHit;
+    private RaycastHit2D leftHit;
+    private RaycastHit2D rightHit;
+    private RaycastHit2D topHit;
+
+    private BoxCollider2D playerCollider;
+
+
+    float rightPositionX;
+    float topPositionY;
+    float bottomPositionY;
+    float leftPositionX;
+
     [SerializeField] private Vector2 moveInput;
 
-    [SerializeField] public float speed = 5f;
     [SerializeField] public float walkSpeed = 3f;      // ADDED: Separate walk speed
     [SerializeField] public float runSpeed = 7f;       // ADDED: Separate run speed
 
@@ -25,7 +37,6 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private float groundCheckDistance = 0.1f;
 
-    private Collider2D playerCollider;
 
     private float jumpBufferCounter;
     private float coyoteCounter;
@@ -53,7 +64,7 @@ public class PlayerMovement : MonoBehaviour
     {
         anim = GetComponentInChildren<Animator>();
         PlayerRb = GetComponent<Rigidbody2D>();
-        playerCollider = GetComponent<Collider2D>();
+        playerCollider = GetComponent<BoxCollider2D>();
 
         if (stats == null)
         {
@@ -63,13 +74,14 @@ public class PlayerMovement : MonoBehaviour
         currentSpeed = walkSpeed; // Initialize with walk speed
     }
 
-    void Update()
+    private void Update()
     {
         GatherInput();
-        collisionBehaviour();
+        GatherInput();
         UpdateBuffers();
         UpdateAnimations();
         UpdateMovementState(); // ADDED: Update walk/run state
+        physicalDirectionalDetectable();
 
         // Debug for space button
         if (Input.GetKeyDown(KeyCode.Space))
@@ -227,6 +239,14 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    private void physicalDirectionalDetectable()
+    {
+
+        landingHit = Physics2D.Raycast(new Vector2(this.transform.position.x, bottomPositionY + transform.position.y), new Vector2(transform.position.x, 0.2f));
+        leftHit = Physics2D.Raycast(new Vector2(leftPositionX + transform.position.x, this.transform.position.y), new Vector2(leftPositionX - 0.2f, 0.0f), 0.2f);
+        rightHit = Physics2D.Raycast(new Vector2(rightPositionX + transform.position.x, this.transform.position.y), new Vector2(rightPositionX + 0.2f, 0.0f), 0.2f);
+        topHit = Physics2D.Raycast(new Vector2(this.transform.position.x, topPositionY + transform.position.y), new Vector2(transform.position.x, 0.2f), 0.2f);
+    }
     private void ExecuteJump()
     {
         isJumping = true;
@@ -246,50 +266,22 @@ public class PlayerMovement : MonoBehaviour
         PlayerRb.velocity = new Vector2(PlayerRb.velocity.x, jumpVelocity);
     }
 
-    void collisionBehaviour()
-    {
-        if (playerCollider == null) return;
-
-        RaycastHit2D hit = Physics2D.BoxCast(playerCollider.bounds.center,
-                                              playerCollider.bounds.size,
-                                              0,
-                                              Vector2.down,
-                                              groundCheckDistance,
-                                              groundLayer);
-
-        isGrounded = hit.collider != null;
-
-        if (hit.collider != null)
-        {
-            Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, Color.green);
-        }
-        else
-        {
-            Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, Color.red);
-        }
-    }
 
     void playerBehaviour()
     {
         float horizontal = frameInput.Move.x;
 
-        // FIXED: Flip sprite based on movement direction
         if (horizontal != 0)
         {
-            transform.localScale = new Vector3(Mathf.Sign(horizontal), transform.localScale.y, transform.localScale.z);
-        }
-
-        // ADDED: Use current speed (walk or run)
-        float movementSpeed = currentSpeed;
-
-        // ADDED: Slight speed reduction when changing direction quickly
-        if (Mathf.Abs(horizontal) > 0 && Mathf.Sign(horizontal) != Mathf.Sign(PlayerRb.velocity.x))
-        {
-            movementSpeed *= 0.8f; // Turn speed penalty for more realistic movement
+            transform.localScale = new Vector3(
+                Mathf.Sign(horizontal),
+                transform.localScale.y,
+                transform.localScale.z
+            );
         }
 
         Vector2 targetVelocity = new Vector2(
-            horizontal * movementSpeed,
+            horizontal * currentSpeed,
             PlayerRb.velocity.y
         );
 
